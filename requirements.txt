@@ -1,0 +1,11 @@
+flask
+torch
+transformers
+nltk
+numpy
+pandas
+rouge-score
+scikit-learn
+sentencepiece
+pypdf
+python-docx
