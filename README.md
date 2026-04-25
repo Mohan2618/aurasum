@@ -24,15 +24,15 @@ aurasum/
 ├── models/ (downloaded locally)
 
 Installation & Setup:
-1. Install dependencies
+1. Install dependencies:
 pip install -r requirements.txt
-2. Download model (one-time setup)
+2. Download model (one-time setup):
 python setup_offline.py
-3. Download model (one-time setup)
+3. Download model (one-time setup):
 python setup_offline.py
-4. Run the application
+4. Run the application:
 python server.py
-5. Open in browser
+5. Open in browser:
 http://localhost:5000
 Usage
 Option 1: Type or paste text
