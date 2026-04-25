@@ -1,1 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuraSum | Offline NLP Intelligence</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+            --success: #22c55e;
+            --warning: #f59e0b;
+        }
 
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .container { max-width: 1100px; width: 100%; z-index: 1; }
+
+        header { text-align: center; margin-bottom: 2.5rem; animation: fadeInDown 0.8s ease-out; }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: 2px;
+        }
+
+        .subtitle { color: #94a3b8; font-size: 1.1rem; }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        /* ── Input tabs ── */
+        .tab-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8;
+            padding: 0.6rem 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            letter-spacing: 0.5px;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-color: transparent;
+        }
+
+        /* ── Text panel ── */
+        #textPanel { display: block; }
+        #uploadPanel { display: none; }
+
+        textarea {
+            width: 100%;
+            height: 220px;
+            background: rgba(15,23,42,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            color: var(--text);
+            padding: 1.25rem;
+            font-size: 1rem;
+            resize: none;
+            outline: none;
+            transition: border-color 0.3s;
+            margin-bottom: 0;
+        }
+
+        textarea:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(99,102,241,0.2); }
+
+        /* ── Upload panel ── */
+        .drop-zone {
+            border: 2px dashed rgba(99,102,241,0.5);
+            border-radius: 16px;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(99,102,241,0.04);
+            position: relative;
+        }
+
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: var(--primary);
+            background: rgba(99,102,241,0.1);
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+        }
+
+        .drop-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+        .drop-label { color: #94a3b8; font-size: 0.95rem; line-height: 1.6; }
+        .drop-label span { color: var(--primary); font-weight: 600; }
+
+        .file-types {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .file-badge {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px;
+            padding: 2px 10px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* File info bar shown after successful upload */
+        .file-info-bar {
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+            background: rgba(34,197,94,0.1);
+            border: 1px solid rgba(34,197,94,0.25);
+            border-radius: 10px;
+            padding: 0.6rem 1rem;
+        }
+
+        .file-info-bar.visible { display: flex; }
+
+        .file-info-icon { font-size: 1.2rem; }
+
+        .file-info-text { flex: 1; font-size: 0.88rem; color: #86efac; }
+
+        .file-clear-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0 4px;
+            transition: color 0.2s;
+        }
+
+        .file-clear-btn:hover { color: #f87171; }
+
+        /* ── Controls row ── */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.25rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        select {
+            background: #1e293b;
+            color: white;
+            border: 1px solid #334155;
+            padding: 0.55rem 0.9rem;
+            border-radius: 8px;
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 0.85rem 2.2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(99,102,241,0.4); }
+        .btn:disabled { background: #475569; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* ── Results ── */
+        .results-section {
+            margin-top: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+
+        .results-section.visible { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 700px) { .results-section { grid-template-columns: 1fr; } }
+
+        .summary-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.88rem;
+            text-transform: uppercase;
+        }
+
+        .time-badge {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+
+        .summary-content { line-height: 1.7; color: #cbd5e1; font-size: 0.95rem; }
+
+        /* ── Source info banner ── */
+        .source-banner {
+            display: none;
+            margin-bottom: 1.5rem;
+            background: rgba(99,102,241,0.1);
+            border: 1px solid rgba(99,102,241,0.25);
+            border-radius: 12px;
+            padding: 0.7rem 1.1rem;
+            font-size: 0.88rem;
+            color: #a5b4fc;
+        }
+
+        .source-banner.visible { display: block; }
+
+        /* ── Loader ── */
+        .loader {
+            display: none;
+            width: 18px; height: 18px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s linear infinite;
+        }
+
+        /* ── Upload loader overlay ── */
+        .upload-spinner {
+            display: none;
+            width: 20px; height: 20px;
+            border: 3px solid rgba(99,102,241,0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 0.8s linear infinite;
+            margin: 0.5rem auto 0;
+        }
+
+        .upload-spinner.visible { display: block; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .bg-glow {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(800px circle at var(--x) var(--y), rgba(99,102,241,0.05), transparent 40%);
+            pointer-events: none;
+        }
+
+        .error-msg {
+            color: #f87171;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+        .error-msg.visible { display: block; }
+    </style>
+</head>
+<body>
+    <div class="bg-glow" id="glow"></div>
+
+    <div class="container">
+        <header>
+            <h1>AURASUM</h1>
+            <p class="subtitle">Offline Generative &amp; Extractive Intelligence</p>
+        </header>
+
+        <!-- ── Input Card ── -->
+        <div class="card">
+            <!-- Tabs -->
+            <div class="tab-bar">
+                <button class="tab-btn active" id="tabText" onclick="switchTab('text')">✏️ &nbsp;Type / Paste Text</button>
+                <button class="tab-btn" id="tabUpload" onclick="switchTab('upload')">📄 &nbsp;Upload Document</button>
+            </div>
+
+            <!-- Text Panel -->
+            <div id="textPanel">
+                <textarea id="inputText" placeholder="Paste your long-form article or text here for intelligent compression..."></textarea>
+            </div>
+
+            <!-- Upload Panel -->
+            <div id="uploadPanel">
+                <div class="drop-zone" id="dropZone">
+                    <input type="file" id="fileInput" accept=".pdf,.docx,.txt" onchange="handleFileSelect(event)">
+                    <div class="drop-icon">☁️</div>
+                    <div class="drop-label">
+                        <strong>Drag &amp; drop your file here</strong><br>
+                        or <span>click to browse</span>
+                    </div>
+                    <div class="file-types">
+                        <span class="file-badge">PDF</span>
+                        <span class="file-badge">DOCX</span>
+                        <span class="file-badge">TXT</span>
+                    </div>
+                </div>
+                <div class="upload-spinner" id="uploadSpinner"></div>
+                <div class="file-info-bar" id="fileInfoBar">
+                    <span class="file-info-icon">✅</span>
+                    <span class="file-info-text" id="fileInfoText"></span>
+                    <button class="file-clear-btn" onclick="clearFile()" title="Remove file">✕</button>
+                </div>
+                <div class="error-msg" id="uploadError"></div>
+            </div>
+
+            <!-- Controls row -->
+            <div class="controls">
+                <select id="sumType">
+                    <option value="both">Both Methods</option>
+                    <option value="extractive">Extractive (TextRank)</option>
+                    <option value="abstractive">Abstractive (Transformer)</option>
+                </select>
+                <button class="btn" id="sumBtn" onclick="process()">
+                    <span class="loader" id="loader"></span>
+                    Generate Insights
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Results ── -->
+        <div class="source-banner" id="sourceBanner"></div>
+
+        <div class="results-section" id="results">
+            <div class="card">
+                <div class="summary-label">
+                    <span>Extractive Logic</span>
+                    <span class="time-badge" id="extTime">-</span>
+                </div>
+                <div class="summary-content" id="extResult">Waiting for input...</div>
+            </div>
+            <div class="card">
+                <div class="summary-label">
+                    <span>Abstractive Mind</span>
+                    <span class="time-badge" id="absTime">-</span>
+                </div>
+                <div class="summary-content" id="absResult">Waiting for input...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── Glow effect ──────────────────────────────────────────────
+        document.addEventListener('mousemove', e => {
+            document.getElementById('glow').style.setProperty('--x', e.clientX + 'px');
+            document.getElementById('glow').style.setProperty('--y', e.clientY + 'px');
+        });
+
+        // ── Drag-and-drop wiring ─────────────────────────────────────
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) uploadFile(files[0]);
+        });
+
+        // ── State ────────────────────────────────────────────────────
+        let activeTab = 'text';      // 'text' | 'upload'
+        let uploadedText = '';       // text extracted from uploaded file
+
+        // ── Tab switching ────────────────────────────────────────────
+        function switchTab(tab) {
+            activeTab = tab;
+            document.getElementById('textPanel').style.display   = tab === 'text'   ? 'block' : 'none';
+            document.getElementById('uploadPanel').style.display = tab === 'upload' ? 'block' : 'none';
+            document.getElementById('tabText').classList.toggle('active',   tab === 'text');
+            document.getElementById('tabUpload').classList.toggle('active', tab === 'upload');
+        }
+
+        // ── File select via input ────────────────────────────────────
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) uploadFile(file);
+        }
+
+        // ── Upload file to /upload endpoint ──────────────────────────
+        async function uploadFile(file) {
+            // Reset
+            uploadedText = '';
+            setFileInfoBar(false);
+            setUploadError('');
+            document.getElementById('uploadSpinner').classList.add('visible');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.error) {
+                    setUploadError(data.error);
+                } else {
+                    uploadedText = data.text;
+                    setFileInfoBar(true, `${file.name}  —  ${data.word_count.toLocaleString()} words extracted`);
+                }
+            } catch (err) {
+                setUploadError('Failed to connect to server. Is it running?');
+            } finally {
+                document.getElementById('uploadSpinner').classList.remove('visible');
+                // Reset input so the same file can be re-selected
+                document.getElementById('fileInput').value = '';
+            }
+        }
+
+        function setFileInfoBar(show, msg = '') {
+            const bar  = document.getElementById('fileInfoBar');
+            const text = document.getElementById('fileInfoText');
+            text.textContent = msg;
+            bar.classList.toggle('visible', show);
+        }
+
+        function setUploadError(msg) {
+            const el = document.getElementById('uploadError');
+            el.textContent = msg;
+            el.classList.toggle('visible', !!msg);
+        }
+
+        function clearFile() {
+            uploadedText = '';
+            setFileInfoBar(false);
+            setUploadError('');
+        }
+
+        // ── Main summarise flow ──────────────────────────────────────
+        async function process() {
+            let text = '';
+            let source = '';
+
+            if (activeTab === 'text') {
+                text = document.getElementById('inputText').value.trim();
+                source = 'Typed / pasted text';
+                if (!text) { alert('Please enter some text!'); return; }
+            } else {
+                if (!uploadedText) { alert('Please upload a document first!'); return; }
+                text   = uploadedText;
+                source = 'Uploaded document';
+            }
+
+            const type    = document.getElementById('sumType').value;
+            const btn     = document.getElementById('sumBtn');
+            const loader  = document.getElementById('loader');
+            const results = document.getElementById('results');
+            const banner  = document.getElementById('sourceBanner');
+
+            btn.disabled = true;
+            loader.style.display = 'inline-block';
+            results.classList.remove('visible');
+
+            try {
+                const response = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, type })
+                });
+
+                const data = await response.json();
+
+                if (data.error) { alert(data.error); return; }
+
+                if (data.extractive) {
+                    document.getElementById('extResult').innerText = data.extractive.text;
+                    document.getElementById('extTime').innerText   = data.extractive.time;
+                } else {
+                    document.getElementById('extResult').innerText = 'Not requested.';
+                }
+
+                if (data.abstractive) {
+                    document.getElementById('absResult').innerText = data.abstractive.text;
+                    document.getElementById('absTime').innerText   = data.abstractive.time;
+                } else {
+                    document.getElementById('absResult').innerText = 'Not requested.';
+                }
+
+                banner.textContent = `📌  Summarized from: ${source}`;
+                banner.classList.add('visible');
+                results.classList.add('visible');
+
+            } catch (err) {
+                console.error(err);
+                alert('Error connecting to the offline server.');
+            } finally {
+                btn.disabled = false;
+                loader.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
